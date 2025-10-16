@@ -7,7 +7,9 @@ const app = express();
 const port = 5000;
 
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.urlencoded({ extended: true }));
+// allow serving static files from the root directory
+app.use(express.static(path.join(__dirname)));
 
 const db = new sqlite3.Database('./kanban.db', (err) => {
     if (err) {
