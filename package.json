@@ -1,0 +1,16 @@
+{
+  "name": "kanbanapp",
+  "version": "1.0.0",
+  "description": "kanban app using nodejs express sqlite3 ",
+  "license": "ISC",
+  "author": "Emanuel Matute",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "sqlite3": "^5.1.7"
+  }
+}
