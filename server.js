@@ -1,58 +1,54 @@
-
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
+const fs = require('fs');
+const bodyParser = require('body-parser');
+const env = require('dotenv').config();
 
 const app = express();
 const port = 5000;
+
+// Replace with your Supabase URL and anon key
+const supabaseUrl = env.parsed.SUPABASE_URL || 'YOUR_SUPABASE_URL';
+const supabaseKey = env.parsed.SUPABASE_KEY || 'YOUR_SUPABASE_KEY';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // allow serving static files from the root directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-const db = new sqlite3.Database('./kanban.db', (err) => {
-    if (err) {
-        console.error(err.message);
+app.get('/api/tasks', async (req, res) => {
+    const { data, error } = await supabase
+        .from('tasks')
+        .select('*');
+
+    if (error) {
+        res.status(500).send(error.message);
+        return;
     }
-    console.log('Connected to the kanban database.');
+    res.json(data);
 });
 
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS tasks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        content TEXT NOT NULL,
-        status TEXT NOT NULL
-    )`);
-});
-
-app.get('/api/tasks', (req, res) => {
-    db.all("SELECT * FROM tasks", [], (err, rows) => {
-        if (err) {
-            res.status(500).send(err.message);
-            return;
-        }
-        res.json(rows);
-    });
-});
-
-app.post('/api/tasks', (req, res) => {
+app.post('/api/tasks', async (req, res) => {
     const { content, status } = req.body;
     if (!content || !status) {
         return res.status(400).send('Content and status are required');
     }
 
-    const sql = `INSERT INTO tasks (content, status) VALUES (?, ?)`;
-    db.run(sql, [content, status], function(err) {
-        if (err) {
-            res.status(500).send(err.message);
-            return;
-        }
-        res.json({ id: this.lastID, content, status });
-    });
+    const { data, error } = await supabase
+        .from('tasks')
+        .insert([{ content, status }])
+        .select();
+
+    if (error) {
+        res.status(500).send(error.message);
+        return;
+    }
+    res.json(data[0]);
 });
 
-app.put('/api/tasks/:id', (req, res) => {
+app.put('/api/tasks/:id', async (req, res) => {
     const { status } = req.body;
     const { id } = req.params;
 
@@ -60,32 +56,36 @@ app.put('/api/tasks/:id', (req, res) => {
         return res.status(400).send('Status is required');
     }
 
-    const sql = `UPDATE tasks SET status = ? WHERE id = ?`;
-    db.run(sql, [status, id], function(err) {
-        if (err) {
-            res.status(500).send(err.message);
-            return;
-        }
-        if (this.changes === 0) {
-            return res.status(404).send('Task not found');
-        }
-        res.json({ message: 'Task updated successfully' });
-    });
+    const { data, error } = await supabase
+        .from('tasks')
+        .update({ status })
+        .eq('id', id)
+        .select();
+
+    if (error) {
+        res.status(500).send(error.message);
+        return;
+    }
+    if (!data || data.length === 0) {
+        return res.status(404).send('Task not found');
+    }
+    res.json({ message: 'Task updated successfully' });
 });
 
-app.delete('/api/tasks/:id', (req, res) => {
+app.delete('/api/tasks/:id', async (req, res) => {
     const { id } = req.params;
-    const sql = `DELETE FROM tasks WHERE id = ?`;
-    db.run(sql, id, function(err) {
-        if (err) {
-            res.status(500).send(err.message);
-            return;
-        }
-        if (this.changes === 0) {
-            return res.status(404).send('Task not found');
-        }
-        res.json({ message: 'Task deleted successfully' });
-    });
+
+    const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        res.status(500).send(error.message);
+        return;
+    }
+    
+    res.json({ message: 'Task deleted successfully' });
 });
 
 app.get('/', (req, res) => {
