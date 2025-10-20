@@ -4,6 +4,8 @@ A simple and elegant Kanban board application built with Node.js, Express, and S
 
 ## Overview
 
+![alt text](https://github.com/emanavas/tinyKanban/blob/main/tinyKB.png?raw=true)
+
 tinyKanban is a lightweight, single-page web application that allows you to manage your tasks using a visual Kanban board. You can create tasks, move them between different stages (Backlog, Active, Blocked, Done), and delete them. The application features a clean and intuitive drag-and-drop interface.
 
 ## Features
